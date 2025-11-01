@@ -2,48 +2,46 @@ pipeline {
   agent any
 
   environment {
-    IMAGE_NAME = "sakshi/jenkins-task2"   // change to your Docker Hub name if you plan to push
+    IMAGE_NAME     = "sakshi/jenkins-task2"   // change if you want to push to Docker Hub
     CONTAINER_NAME = "jenkins-task2-web"
-    HOST_PORT = "8090"
+    HOST_PORT      = "8090"
     CONTAINER_PORT = "80"
   }
 
   stages {
-    stage("Checkout") {
+    stage('Checkout') {
       steps {
         checkout scm
       }
     }
 
-    stage("Build (lint)") {
+    stage('Build (lint)') {
       steps {
-        echo "No compilation needed for static site."
-        // put linters here if you add real code later
+        echo 'No compilation needed for static site.'
       }
     }
 
-    stage("Test") {
+    stage('Test') {
       steps {
-        // minimal sanity test: ensure index.html exists
-        powershell """
-          if (-Not (Test-Path .\\app\\index.html)) {
-            Write-Error 'index.html missing!'
-          } else {
-            Write-Host 'index.html present ?'
-          }
-        """
+        sh '''
+          if [ ! -f app/index.html ]; then
+            echo "index.html missing!" >&2
+            exit 1
+          else
+            echo "index.html present ✅"
+          fi
+        '''
       }
     }
 
-    stage("Docker Build") {
+    stage('Docker Build') {
       steps {
         sh 'docker build -t ${IMAGE_NAME}:$BUILD_NUMBER .'
       }
     }
 
-    stage("Deploy (Docker Run)") {
+    stage('Deploy (Docker Run)') {
       steps {
-        // stop and remove any existing container with same name
         sh '''
           if [ "$(docker ps -aq -f name=${CONTAINER_NAME})" ]; then
             docker rm -f ${CONTAINER_NAME} || true
